@@ -42,10 +42,15 @@ async function loadMockData() {
 async function getETFBasicInfo(code) {
     if (API_CONFIG.useMockData) {
         const mockData = await loadMockData();
-        if (!mockData[code]) {
-            throw new Error('해당 종목코드를 찾을 수 없습니다. (152100, 102110, 091160 중 하나를 입력해주세요)');
+
+        // If code exists in mock data, use it
+        if (mockData[code]) {
+            return mockData[code].basicInfo;
         }
-        return mockData[code].basicInfo;
+
+        // Otherwise, generate mock data for any ETF code
+        console.log(`Generating mock data for ETF code: ${code}`);
+        return generateMockBasicInfo(code);
     }
 
     // Real API call (to be implemented)
@@ -81,10 +86,15 @@ async function getETFBasicInfo(code) {
 async function getIntradayData(code) {
     if (API_CONFIG.useMockData) {
         const mockData = await loadMockData();
-        if (!mockData[code]) {
-            throw new Error('해당 종목코드를 찾을 수 없습니다.');
+
+        // If code exists in mock data, use it
+        if (mockData[code]) {
+            return mockData[code].intradayData || [];
         }
-        return mockData[code].intradayData || [];
+
+        // Otherwise, generate mock intraday data
+        console.log(`Generating mock intraday data for ETF code: ${code}`);
+        return generateMockIntradayData(code);
     }
 
     // Real API call (to be implemented)
@@ -121,11 +131,17 @@ async function getIntradayData(code) {
 async function getDailyData(code, period = '1m') {
     if (API_CONFIG.useMockData) {
         const mockData = await loadMockData();
-        if (!mockData[code]) {
-            throw new Error('해당 종목코드를 찾을 수 없습니다.');
-        }
 
-        let data = mockData[code].dailyData || [];
+        let data;
+
+        // If code exists in mock data, use it
+        if (mockData[code]) {
+            data = mockData[code].dailyData || [];
+        } else {
+            // Otherwise, generate mock daily data
+            console.log(`Generating mock daily data for ETF code: ${code}`);
+            data = generateMockDailyData(code);
+        }
 
         // Generate more data if needed
         if (data.length < 365) {
@@ -238,6 +254,108 @@ function aggregateDataByInterval(data, intervalDays) {
 
     console.log(`Aggregated result: ${aggregated.length} items`);
     return aggregated;
+}
+
+/**
+ * Generate mock basic info for any ETF code
+ * @param {string} code - ETF code
+ * @returns {Object} Mock basic info
+ */
+function generateMockBasicInfo(code) {
+    // Generate random base price between 10,000 and 50,000
+    const basePrice = Math.floor(Math.random() * 40000) + 10000;
+    const change = Math.floor((Math.random() - 0.5) * 2000);
+    const changePercent = (change / (basePrice - change)) * 100;
+
+    return {
+        code: code,
+        name: `ETF ${code}`,
+        currentPrice: basePrice,
+        change: change,
+        changePercent: parseFloat(changePercent.toFixed(2)),
+        open: basePrice - Math.floor(Math.random() * 500),
+        high: basePrice + Math.floor(Math.random() * 500),
+        low: basePrice - Math.floor(Math.random() * 500),
+        volume: Math.floor(Math.random() * 10000000) + 1000000
+    };
+}
+
+/**
+ * Generate mock intraday data for any ETF code
+ * @param {string} code - ETF code
+ * @returns {Array} Mock intraday data
+ */
+function generateMockIntradayData(code) {
+    const data = [];
+    const basePrice = Math.floor(Math.random() * 40000) + 10000;
+    let currentPrice = basePrice;
+
+    // Generate data for trading hours (9:00 - 15:30)
+    for (let hour = 9; hour <= 15; hour++) {
+        const endMinute = hour === 15 ? 30 : 59;
+        for (let minute = 0; minute <= endMinute; minute += 10) {
+            const change = Math.floor((Math.random() - 0.5) * 200);
+            currentPrice += change;
+
+            const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+
+            data.push({
+                time: timeStr,
+                price: currentPrice,
+                change: change,
+                changePercent: parseFloat(((change / (currentPrice - change)) * 100).toFixed(2)),
+                volume: Math.floor(Math.random() * 100000) + 10000
+            });
+        }
+    }
+
+    return data.reverse(); // Most recent first
+}
+
+/**
+ * Generate mock daily data for any ETF code
+ * @param {string} code - ETF code
+ * @returns {Array} Mock daily data
+ */
+function generateMockDailyData(code) {
+    const data = [];
+    const basePrice = Math.floor(Math.random() * 40000) + 10000;
+    let currentPrice = basePrice;
+    const today = new Date();
+
+    // Generate 30 days of data
+    for (let i = 0; i < 30; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+
+        // Skip weekends
+        if (date.getDay() === 0 || date.getDay() === 6) {
+            continue;
+        }
+
+        const changePercent = (Math.random() - 0.5) * 4;
+        const change = Math.round(currentPrice * changePercent / 100);
+        const close = currentPrice;
+        const open = close - change;
+        const high = Math.max(open, close) + Math.round(Math.random() * 200);
+        const low = Math.min(open, close) - Math.round(Math.random() * 200);
+        const volume = Math.round(1000000 + Math.random() * 5000000);
+
+        data.push({
+            date: date.toISOString().split('T')[0],
+            close: close,
+            change: change,
+            changePercent: parseFloat(changePercent.toFixed(2)),
+            open: open,
+            high: high,
+            low: low,
+            volume: volume
+        });
+
+        currentPrice = open;
+    }
+
+    return data;
 }
 
 /**
