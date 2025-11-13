@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ETF 시세 조회 - 실시간 ETF 가격 및 일별 시세 정보">
+    <title>ETF 시세 조회</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>ETF 시세 조회</h1>
+            <p class="subtitle">실시간 ETF 가격 및 일별 시세 정보</p>
+        </header>
+
+        <!-- Search Section -->
+        <section class="search-section">
+            <div class="search-box">
+                <input
+                    type="text"
+                    id="etf-code-input"
+                    placeholder="ETF 종목코드 입력 (예: 152100)"
+                    class="search-input"
+                >
+                <button id="search-btn" class="search-btn">검색</button>
+            </div>
+            <div id="search-error" class="error-message" style="display: none;"></div>
+        </section>
+
+        <!-- ETF Basic Info Section -->
+        <section id="etf-info-section" class="etf-info-section" style="display: none;">
+            <h2>ETF 기본 정보</h2>
+            <div class="info-card">
+                <div class="info-header">
+                    <h3 id="etf-name" class="etf-name">-</h3>
+                    <span id="etf-code" class="etf-code">-</span>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">현재가</span>
+                        <span id="current-price" class="info-value price-large">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">전일대비</span>
+                        <span id="price-change" class="info-value">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">등락률</span>
+                        <span id="change-percent" class="info-value">-</span>
+                    </div>
+                </div>
+                <div class="info-grid secondary">
+                    <div class="info-item">
+                        <span class="info-label">시가</span>
+                        <span id="open-price" class="info-value">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">고가</span>
+                        <span id="high-price" class="info-value">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">저가</span>
+                        <span id="low-price" class="info-value">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">거래량</span>
+                        <span id="volume" class="info-value">-</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Intraday Price Section -->
+        <section id="intraday-section" class="data-section" style="display: none;">
+            <div class="section-header">
+                <h2>시간대별 시세</h2>
+                <span class="update-time" id="intraday-update">-</span>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>체결시간</th>
+                            <th>현재가</th>
+                            <th>전일대비</th>
+                            <th>등락률</th>
+                            <th>거래량</th>
+                        </tr>
+                    </thead>
+                    <tbody id="intraday-tbody">
+                        <tr>
+                            <td colspan="5" class="no-data">데이터를 불러오는 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Daily Price Section -->
+        <section id="daily-section" class="data-section" style="display: none;">
+            <div class="section-header">
+                <h2>일별 시세</h2>
+                <div class="period-selector">
+                    <button class="period-btn active" data-period="1m">1개월</button>
+                    <button class="period-btn" data-period="3m">3개월</button>
+                    <button class="period-btn" data-period="6m">6개월</button>
+                    <button class="period-btn" data-period="1y">1년</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>날짜</th>
+                            <th>종가</th>
+                            <th>전일대비</th>
+                            <th>등락률</th>
+                            <th>시가</th>
+                            <th>고가</th>
+                            <th>저가</th>
+                            <th>거래량</th>
+                        </tr>
+                    </thead>
+                    <tbody id="daily-tbody">
+                        <tr>
+                            <td colspan="8" class="no-data">데이터를 불러오는 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" class="loading-spinner" style="display: none;">
+            <div class="spinner"></div>
+            <p>데이터를 불러오는 중...</p>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2025 ETF 시세 조회. 데이터 출처: 공공데이터포털</p>
+            <p class="disclaimer">본 정보는 투자 참고용이며, 투자 판단의 책임은 투자자에게 있습니다.</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
