@@ -132,16 +132,30 @@ async function getDailyData(code, period = '1m') {
             data = generateExtendedDailyData(data, code);
         }
 
-        // Filter by period
-        const periodDays = {
-            '1m': 30,
-            '3m': 90,
-            '6m': 180,
-            '1y': 365
-        };
+        // Get data by period and aggregate accordingly
+        let resultData;
+        switch (period) {
+            case '1m':
+                // 1개월: 일별 데이터 30일
+                resultData = data.slice(0, 30);
+                break;
+            case '3m':
+                // 3개월: 주간 데이터 (7일 단위 집계)
+                resultData = aggregateDataByInterval(data.slice(0, 90), 7);
+                break;
+            case '6m':
+                // 6개월: 2주간 데이터 (14일 단위 집계)
+                resultData = aggregateDataByInterval(data.slice(0, 180), 14);
+                break;
+            case '1y':
+                // 1년: 월간 데이터 (30일 단위 집계)
+                resultData = aggregateDataByInterval(data.slice(0, 365), 30);
+                break;
+            default:
+                resultData = data.slice(0, 30);
+        }
 
-        const days = periodDays[period] || 30;
-        return data.slice(0, Math.min(days, data.length));
+        return resultData;
     }
 
     // Real API call (to be implemented)
@@ -170,6 +184,47 @@ async function getDailyData(code, period = '1m') {
         console.error('Error fetching daily data:', error);
         throw new Error('일별 시세를 가져오는데 실패했습니다.');
     }
+}
+
+/**
+ * Aggregate data by interval (weekly, bi-weekly, monthly)
+ * @param {Array} data - Daily data array
+ * @param {number} intervalDays - Number of days to aggregate (7, 14, 30)
+ * @returns {Array} Aggregated data
+ */
+function aggregateDataByInterval(data, intervalDays) {
+    if (!data || data.length === 0) {
+        return [];
+    }
+
+    const aggregated = [];
+
+    for (let i = 0; i < data.length; i += intervalDays) {
+        const chunk = data.slice(i, i + intervalDays);
+
+        if (chunk.length === 0) continue;
+
+        // 첫날 (가장 최근 날짜)
+        const firstDay = chunk[0];
+        // 마지막날 (가장 오래된 날짜)
+        const lastDay = chunk[chunk.length - 1];
+
+        // 집계 데이터 계산
+        const aggregatedItem = {
+            date: firstDay.date, // 기간의 마지막 날짜 (가장 최근)
+            close: firstDay.close, // 종가: 기간의 마지막 종가
+            open: lastDay.open, // 시가: 기간의 첫 시가
+            high: Math.max(...chunk.map(d => d.high)), // 고가: 기간 중 최고가
+            low: Math.min(...chunk.map(d => d.low)), // 저가: 기간 중 최저가
+            volume: chunk.reduce((sum, d) => sum + d.volume, 0), // 거래량: 합계
+            change: firstDay.close - lastDay.open, // 전일대비: 종가 - 시가
+            changePercent: ((firstDay.close - lastDay.open) / lastDay.open * 100)
+        };
+
+        aggregated.push(aggregatedItem);
+    }
+
+    return aggregated;
 }
 
 /**

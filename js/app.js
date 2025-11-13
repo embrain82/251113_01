@@ -190,17 +190,17 @@ function displayDailyData(data) {
         return;
     }
 
-    // Update section header with data count
+    // Update section header with data count and unit
     const sectionHeader = document.querySelector('#daily-section .section-header h2');
     if (sectionHeader) {
-        const periodText = {
-            '1m': '1개월',
-            '3m': '3개월',
-            '6m': '6개월',
-            '1y': '1년'
+        const periodInfo = {
+            '1m': { label: '1개월', unit: '일별' },
+            '3m': { label: '3개월', unit: '주간' },
+            '6m': { label: '6개월', unit: '2주간' },
+            '1y': { label: '1년', unit: '월간' }
         };
-        const currentPeriodText = periodText[appState.currentPeriod] || '1개월';
-        sectionHeader.textContent = `일별 시세 (${currentPeriodText} - ${data.length}개)`;
+        const info = periodInfo[appState.currentPeriod] || periodInfo['1m'];
+        sectionHeader.textContent = `${info.unit} 시세 (${info.label} - ${data.length}개)`;
     }
 
     // Generate rows
@@ -254,21 +254,21 @@ async function handlePeriodChange(period) {
     // Reload daily data
     try {
         const dailyData = await getDailyData(appState.currentETF, period);
-        console.log(`Loaded ${dailyData.length} daily records for period ${period}`);
         displayDailyData(dailyData);
 
         // Show success feedback
-        const periodText = {
-            '1m': '1개월',
-            '3m': '3개월',
-            '6m': '6개월',
-            '1y': '1년'
+        const periodInfo = {
+            '1m': { label: '1개월', unit: '일별' },
+            '3m': { label: '3개월', unit: '주간' },
+            '6m': { label: '6개월', unit: '2주간' },
+            '1y': { label: '1년', unit: '월간' }
         };
-        console.log(`${periodText[period]} 데이터 ${dailyData.length}개 로드 완료`);
+        const info = periodInfo[period] || periodInfo['1m'];
+        console.log(`${info.label} ${info.unit} 데이터 ${dailyData.length}개 로드 완료`);
     } catch (error) {
         console.error('Error loading daily data:', error);
         tbody.innerHTML = '<tr><td colspan="8" class="no-data">데이터를 불러오는데 실패했습니다.</td></tr>';
-        showError('일별 시세를 불러오는데 실패했습니다.');
+        showError('시세 데이터를 불러오는데 실패했습니다.');
     }
 }
 
