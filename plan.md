@@ -264,9 +264,373 @@ Response:
 5. 크로스 브라우저 테스트: Chrome, Firefox, Safari, Edge
 
 ## 배포
-- **개발 환경**: localhost
-- **스테이징**: GitHub Pages / Vercel / Netlify
-- **프로덕션**: AWS / GCP / Azure (필요 시)
+
+### 배포 환경
+- **개발 환경**: localhost (로컬 개발 서버)
+- **스테이징/프로덕션**: Vercel (권장) / GitHub Pages / Netlify
+
+### Vercel 배포 가이드 ⭐ 추천
+
+#### Vercel 선택 이유
+- ✅ 무료 호스팅 (개인 프로젝트)
+- ✅ GitHub 연동 자동 배포
+- ✅ HTTPS 자동 적용
+- ✅ 글로벌 CDN 제공
+- ✅ 환경변수 관리 용이
+- ✅ Serverless Functions 지원 (API 구축 가능)
+- ✅ 빠른 배포 속도 (30초 이내)
+
+#### 1. Vercel 회원가입 및 프로젝트 연결
+
+**Step 1: Vercel 가입**
+```bash
+# Vercel 사이트 방문
+https://vercel.com
+
+# GitHub 계정으로 로그인
+```
+
+**Step 2: 프로젝트 Import**
+1. Vercel 대시보드에서 "New Project" 클릭
+2. GitHub 저장소 연결 (embrain82/251113_01)
+3. Import 클릭
+
+**Step 3: 프로젝트 설정**
+- Framework Preset: `Other` (Vanilla HTML/CSS/JS) 또는 `Vite` (빌드 도구 사용 시)
+- Root Directory: `./` (기본값)
+- Build Command: 비워두기 (정적 사이트) 또는 `npm run build`
+- Output Directory: `./` (정적 사이트) 또는 `dist`
+
+**Step 4: 배포**
+- "Deploy" 버튼 클릭
+- 배포 완료 후 자동 생성된 URL 확인 (예: `https://251113-01.vercel.app`)
+
+#### 2. Vercel CLI를 통한 배포 (옵션)
+
+**설치:**
+```bash
+npm install -g vercel
+```
+
+**로그인:**
+```bash
+vercel login
+```
+
+**배포:**
+```bash
+# 프로젝트 디렉토리에서 실행
+cd /path/to/251113_01
+
+# 첫 배포 (프로젝트 설정)
+vercel
+
+# 프로덕션 배포
+vercel --prod
+```
+
+#### 3. 프로젝트 구조 (Vercel 최적화)
+
+```
+251113_01/
+├── index.html              # 메인 페이지 (루트에 위치 필수)
+├── css/
+│   └── style.css
+├── js/
+│   ├── app.js
+│   ├── api.js
+│   └── utils.js
+├── data/
+│   └── mock-data.json
+├── api/                    # Vercel Serverless Functions (옵션)
+│   └── etf.js             # /api/etf 엔드포인트
+├── public/                 # 정적 파일 (이미지, 폰트 등)
+│   └── favicon.ico
+├── vercel.json            # Vercel 설정 파일
+├── .env.local             # 로컬 환경변수 (Git 제외)
+├── .gitignore
+├── package.json           # Node.js 의존성 (필요 시)
+└── README.md
+```
+
+#### 4. vercel.json 설정 파일
+
+**기본 설정 (정적 사이트):**
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
+```
+
+**Serverless Functions 사용 시:**
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "API_KEY": "@api-key"
+  }
+}
+```
+
+**CORS 설정 포함:**
+```json
+{
+  "version": 2,
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### 5. 환경변수 설정
+
+**Vercel Dashboard에서 설정:**
+1. Vercel 프로젝트 > Settings > Environment Variables
+2. 환경변수 추가:
+   - Name: `API_KEY`
+   - Value: `your-api-key-here`
+   - Environment: Production / Preview / Development
+
+**로컬 개발용 (.env.local):**
+```bash
+# .env.local 파일 생성
+API_KEY=your-api-key-here
+PUBLIC_DATA_PORTAL_KEY=your-public-data-key
+KRX_API_KEY=your-krx-api-key
+```
+
+**JavaScript에서 환경변수 사용:**
+```javascript
+// Vercel Serverless Function에서
+const apiKey = process.env.API_KEY;
+
+// 클라이언트 사이드에서 (VITE 사용 시)
+const apiKey = import.meta.env.VITE_API_KEY;
+```
+
+#### 6. Vercel Serverless Functions 예시
+
+**api/etf.js (ETF 데이터 프록시 API):**
+```javascript
+// /api/etf?code=152100 로 호출 가능
+
+export default async function handler(req, res) {
+  const { code } = req.query;
+
+  // CORS 헤더 설정
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  try {
+    // 공공데이터포털 API 호출
+    const apiKey = process.env.PUBLIC_DATA_PORTAL_KEY;
+    const basDt = new Date().toISOString().split('T')[0].replace(/-/g, '');
+
+    const response = await fetch(
+      `https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo?serviceKey=${apiKey}&basDt=${basDt}&isinCd=${code}`
+    );
+
+    const data = await response.json();
+
+    return res.status(200).json({
+      success: true,
+      data: data
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}
+```
+
+**api/etf-list.js (ETF 목록 조회):**
+```javascript
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
+  try {
+    // PyKRX 또는 다른 데이터 소스에서 ETF 목록 조회
+    // 또는 정적 JSON 파일 반환
+    const etfList = [
+      { code: '152100', name: 'KODEX 200' },
+      { code: '102110', name: 'TIGER 200' },
+      { code: '091160', name: 'KODEX 반도체' }
+    ];
+
+    return res.status(200).json({
+      success: true,
+      data: etfList
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}
+```
+
+#### 7. 자동 배포 설정
+
+**GitHub 연동 시 자동 배포:**
+- `main` 브랜치에 push하면 자동으로 프로덕션 배포
+- 다른 브랜치에 push하면 Preview 배포 (고유 URL 생성)
+- Pull Request 생성 시 자동으로 Preview 배포
+
+**배포 알림:**
+- Vercel은 배포 완료 시 자동으로 GitHub에 코멘트 추가
+- Slack/Discord 연동 가능
+
+#### 8. 커스텀 도메인 설정 (옵션)
+
+**무료 도메인:**
+- Vercel 기본 도메인: `https://your-project.vercel.app`
+
+**커스텀 도메인 연결:**
+1. Vercel 프로젝트 > Settings > Domains
+2. 도메인 입력 (예: `etf.yourdomain.com`)
+3. DNS 레코드 추가 (Vercel이 안내하는 대로)
+   - Type: `A` 또는 `CNAME`
+   - Value: Vercel 제공 값
+
+#### 9. 성능 최적화
+
+**빌드 최적화:**
+```json
+// package.json
+{
+  "scripts": {
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}
+```
+
+**정적 파일 캐싱:**
+```json
+// vercel.json
+{
+  "headers": [
+    {
+      "source": "/(.*).css",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*).js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### 10. 배포 체크리스트
+
+**배포 전 확인사항:**
+- [ ] index.html이 루트 디렉토리에 위치
+- [ ] 모든 상대 경로가 올바르게 설정
+- [ ] API 키가 환경변수로 관리되고 있는지 확인
+- [ ] .gitignore에 .env.local 포함
+- [ ] Cross-browser 테스트 완료
+- [ ] 모바일 반응형 테스트 완료
+- [ ] 콘솔 에러 없는지 확인
+
+**배포 후 확인사항:**
+- [ ] 배포 URL 접속 확인
+- [ ] API 호출 정상 작동 확인
+- [ ] 환경변수 적용 확인
+- [ ] HTTPS 적용 확인
+- [ ] 성능 테스트 (Lighthouse)
+
+#### 11. 트러블슈팅
+
+**문제: 404 에러 발생**
+- 해결: vercel.json에서 라우팅 설정 확인
+
+**문제: API 호출 CORS 에러**
+- 해결: Serverless Function에 CORS 헤더 추가
+
+**문제: 환경변수 적용 안됨**
+- 해결: Vercel Dashboard에서 환경변수 재확인 및 재배포
+
+**문제: 빌드 실패**
+- 해결: package.json 의존성 확인 및 빌드 명령어 수정
+
+#### 12. Vercel 대체 옵션
+
+**GitHub Pages:**
+- 무료, GitHub 저장소 직접 호스팅
+- 정적 사이트만 가능 (Serverless 미지원)
+- 배포: Settings > Pages > Source 설정
+
+**Netlify:**
+- Vercel과 유사한 기능
+- 무료 티어 제공
+- Forms, Functions 지원
+
+**Cloudflare Pages:**
+- 무료 호스팅
+- Cloudflare CDN 활용
+- Workers 지원 (Serverless)
 
 ## 다음 단계
 1. ✅ 프로젝트 플랜 작성 완료
@@ -276,7 +640,11 @@ Response:
 5. ⬜ Mock 데이터 연동
 6. ⬜ 실제 API 연동
 7. ⬜ 테스트 및 디버깅
-8. ⬜ 배포
+8. ⬜ Vercel 배포 설정 (.gitignore, vercel.json 작성)
+9. ⬜ Vercel에 프로젝트 배포
+10. ⬜ 환경변수 설정 및 API 연동 테스트
+11. ⬜ 커스텀 도메인 연결 (옵션)
+12. ⬜ 성능 최적화 및 모니터링
 
 ## ETF 데이터 소스 상세 정보
 
