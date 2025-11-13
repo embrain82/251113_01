@@ -327,4 +327,150 @@ function destroyAllCharts() {
         dailyChartInstance.destroy();
         dailyChartInstance = null;
     }
+    if (comparisonChartInstance) {
+        comparisonChartInstance.destroy();
+        comparisonChartInstance = null;
+    }
+}
+
+/**
+ * Render comparison chart for multiple ETFs
+ * @param {Array} etfs - Array of ETF objects with dailyData
+ */
+let comparisonChartInstance = null;
+
+function renderComparisonChart(etfs) {
+    if (!etfs || etfs.length === 0) {
+        console.warn('No ETF data for comparison');
+        return;
+    }
+
+    const canvas = document.getElementById('comparison-chart');
+    if (!canvas) {
+        console.error('Comparison chart canvas not found');
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    // Destroy existing chart
+    if (comparisonChartInstance) {
+        comparisonChartInstance.destroy();
+    }
+
+    // Prepare common labels (use dates from first ETF)
+    const reversedData = [...etfs[0].dailyData].reverse();
+    const labels = reversedData.map(item => formatDate(item.date));
+
+    // Color palette for different ETFs
+    const colors = [
+        { border: 'rgba(102, 126, 234, 1)', bg: 'rgba(102, 126, 234, 0.1)' },
+        { border: 'rgba(255, 99, 132, 1)', bg: 'rgba(255, 99, 132, 0.1)' },
+        { border: 'rgba(75, 192, 192, 1)', bg: 'rgba(75, 192, 192, 0.1)' }
+    ];
+
+    // Create datasets for each ETF
+    const datasets = etfs.map((etf, index) => {
+        const reversedDaily = [...etf.dailyData].reverse();
+        const closePrices = reversedDaily.map(item => item.close);
+        const color = colors[index % colors.length];
+
+        return {
+            label: `${etf.name} (${etf.code})`,
+            data: closePrices,
+            borderColor: color.border,
+            backgroundColor: color.bg,
+            borderWidth: 2,
+            tension: 0.1,
+            fill: false,
+            pointRadius: 3,
+            pointHoverRadius: 5
+        };
+    });
+
+    // Create chart
+    comparisonChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += formatPrice(context.parsed.y);
+
+                            // Add change percentage if available
+                            const etfIndex = context.datasetIndex;
+                            const dataIndex = context.dataIndex;
+                            const etf = etfs[etfIndex];
+                            if (etf && etf.dailyData) {
+                                const reversedDaily = [...etf.dailyData].reverse();
+                                const item = reversedDaily[dataIndex];
+                                if (item) {
+                                    const percent = formatPercent(item.changePercent);
+                                    label += ` (${percent.text})`;
+                                }
+                            }
+
+                            return label;
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'ETF 일별 시세 비교 (종가 기준)',
+                    font: {
+                        size: 16
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: '날짜'
+                    },
+                    ticks: {
+                        maxTicksLimit: 15,
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: '가격 (원)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return formatNumber(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    console.log('Comparison chart rendered with', etfs.length, 'ETFs');
 }

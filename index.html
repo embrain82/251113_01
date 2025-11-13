@@ -47,16 +47,45 @@
 
         <!-- Search Section -->
         <section class="search-section">
-            <div class="search-box">
-                <input
-                    type="text"
-                    id="etf-code-input"
-                    placeholder="ETF 종목코드 입력 (예: 152100)"
-                    class="search-input"
-                >
-                <button id="search-btn" class="search-btn">검색</button>
+            <h2>ETF 종목 검색 (최대 3개)</h2>
+            <div class="multi-search-box">
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="etf-code-input-1"
+                        placeholder="ETF 코드 1 (예: 152100)"
+                        class="search-input"
+                    >
+                    <button class="search-btn-small" data-index="1">추가</button>
+                </div>
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="etf-code-input-2"
+                        placeholder="ETF 코드 2 (예: 278530)"
+                        class="search-input"
+                    >
+                    <button class="search-btn-small" data-index="2">추가</button>
+                </div>
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="etf-code-input-3"
+                        placeholder="ETF 코드 3 (예: 157490)"
+                        class="search-input"
+                    >
+                    <button class="search-btn-small" data-index="3">추가</button>
+                </div>
             </div>
             <div id="search-error" class="error-message" style="display: none;"></div>
+        </section>
+
+        <!-- ETF List Section -->
+        <section id="etf-list-section" class="etf-list-section" style="display: none;">
+            <h2>검색된 ETF 목록</h2>
+            <div id="etf-checkbox-list" class="etf-checkbox-list">
+                <!-- ETF 체크박스가 동적으로 추가됩니다 -->
+            </div>
         </section>
 
         <!-- ETF Basic Info Section -->
@@ -120,6 +149,17 @@
             </div>
             <div class="chart-container">
                 <canvas id="daily-chart"></canvas>
+            </div>
+        </section>
+
+        <!-- Comparison Chart Section -->
+        <section id="comparison-section" class="data-section" style="display: none;">
+            <div class="section-header">
+                <h2>일별 시세 비교</h2>
+                <p class="section-description">체크박스를 선택하여 ETF 상품을 비교하세요</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="comparison-chart"></canvas>
             </div>
         </section>
 

@@ -1,11 +1,12 @@
 /**
- * Main Application Logic
+ * Main Application Logic - Multi ETF Comparison
  */
 
 // App State
 const appState = {
-    currentETF: null,
-    currentPeriod: '1m'
+    etfList: [], // Array to store searched ETF data
+    selectedETFs: new Set(), // Set of selected ETF codes for comparison
+    currentETF: null // Currently displayed ETF in detail view
 };
 
 // DOM Elements
@@ -24,7 +25,7 @@ function initApp() {
     // Initial state
     hideAllSections();
 
-    console.log('ETF 시세 조회 앱이 시작되었습니다.');
+    console.log('ETF 시세 조회 앱이 시작되었습니다 (다중 비교 모드).');
 }
 
 /**
@@ -32,11 +33,16 @@ function initApp() {
  */
 function cacheElements() {
     elements = {
-        searchInput: document.getElementById('etf-code-input'),
-        searchBtn: document.getElementById('search-btn'),
+        searchInput1: document.getElementById('etf-code-input-1'),
+        searchInput2: document.getElementById('etf-code-input-2'),
+        searchInput3: document.getElementById('etf-code-input-3'),
+        searchBtns: document.querySelectorAll('.search-btn-small'),
+        etfListSection: document.getElementById('etf-list-section'),
+        etfCheckboxList: document.getElementById('etf-checkbox-list'),
         etfInfoSection: document.getElementById('etf-info-section'),
         intradaySection: document.getElementById('intraday-section'),
-        dailySection: document.getElementById('daily-section')
+        dailySection: document.getElementById('daily-section'),
+        comparisonSection: document.getElementById('comparison-section')
     };
 }
 
@@ -44,22 +50,32 @@ function cacheElements() {
  * Attach event listeners
  */
 function attachEventListeners() {
-    // Search button click
-    elements.searchBtn.addEventListener('click', handleSearch);
+    // Search buttons click
+    elements.searchBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = e.target.dataset.index;
+            handleAddETF(index);
+        });
+    });
 
-    // Enter key in search input
-    elements.searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            handleSearch();
+    // Enter key in search inputs
+    [elements.searchInput1, elements.searchInput2, elements.searchInput3].forEach((input, idx) => {
+        if (input) {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleAddETF(idx + 1);
+                }
+            });
         }
     });
 }
 
 /**
- * Handle search action
+ * Handle adding ETF to the list
  */
-async function handleSearch() {
-    const code = elements.searchInput.value;
+async function handleAddETF(index) {
+    const input = document.getElementById(`etf-code-input-${index}`);
+    const code = input.value.trim();
 
     // Validate input
     const validation = validateETFCode(code);
@@ -68,36 +84,57 @@ async function handleSearch() {
         return;
     }
 
+    // Check if already added
+    if (appState.etfList.find(etf => etf.code === validation.code)) {
+        showError('이미 추가된 ETF입니다.');
+        return;
+    }
+
+    // Check max limit
+    if (appState.etfList.length >= 3) {
+        showError('최대 3개까지 추가할 수 있습니다.');
+        return;
+    }
+
     hideError();
 
-    // Load ETF data
-    await loadETFData(validation.code);
-}
-
-/**
- * Load ETF data and display
- */
-async function loadETFData(code) {
     try {
         showLoading();
-        hideAllSections();
 
-        // Fetch data
-        const data = await getETFData(code);
+        // Fetch ETF data
+        const data = await getETFData(validation.code);
 
-        // Store current ETF
-        appState.currentETF = code;
+        // Add to list
+        appState.etfList.push({
+            code: validation.code,
+            name: data.basicInfo.name,
+            currentPrice: data.basicInfo.currentPrice,
+            change: data.basicInfo.change,
+            changePercent: data.basicInfo.changePercent,
+            dailyData: data.dailyData,
+            intradayData: data.intradayData,
+            fullData: data
+        });
 
-        // Display data
-        displayBasicInfo(data.basicInfo);
-        displayIntradayData(data.intradayData);
-        displayDailyData(data.dailyData);
+        // Auto-select the added ETF
+        appState.selectedETFs.add(validation.code);
 
-        // Show sections
-        showAllSections();
+        // Clear input
+        input.value = '';
+
+        // Render list
+        renderETFList();
+
+        // Show list section
+        showElement('etf-list-section');
+
+        // Update comparison chart
+        updateComparisonChart();
+
+        console.log('ETF 추가:', validation.code, data.basicInfo.name);
 
     } catch (error) {
-        console.error('Error loading ETF data:', error);
+        console.error('Error adding ETF:', error);
         showError(error.message || 'ETF 정보를 불러오는데 실패했습니다.');
     } finally {
         hideLoading();
@@ -105,7 +142,122 @@ async function loadETFData(code) {
 }
 
 /**
- * Display ETF basic information
+ * Render ETF checkbox list
+ */
+function renderETFList() {
+    const container = elements.etfCheckboxList;
+
+    if (appState.etfList.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999;">검색된 ETF가 없습니다.</p>';
+        return;
+    }
+
+    container.innerHTML = appState.etfList.map(etf => {
+        const changeFormatted = formatChange(etf.change);
+        const percentFormatted = formatPercent(etf.changePercent);
+        const isChecked = appState.selectedETFs.has(etf.code);
+
+        return `
+            <div class="etf-checkbox-item">
+                <input
+                    type="checkbox"
+                    id="checkbox-${etf.code}"
+                    data-code="${etf.code}"
+                    ${isChecked ? 'checked' : ''}
+                    onchange="handleCheckboxChange('${etf.code}')"
+                >
+                <div class="etf-checkbox-info">
+                    <div>
+                        <span class="etf-checkbox-name">${etf.name}</span>
+                        <span class="etf-checkbox-code">[${etf.code}]</span>
+                    </div>
+                    <div>
+                        <span class="etf-checkbox-price ${changeFormatted.class}">
+                            ${formatPrice(etf.currentPrice)}
+                        </span>
+                        <span class="${percentFormatted.class}" style="margin-left: 10px; font-size: 0.9rem;">
+                            ${percentFormatted.text}
+                        </span>
+                    </div>
+                </div>
+                <button class="etf-remove-btn" onclick="removeETF('${etf.code}')">
+                    삭제
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Handle checkbox change
+ */
+function handleCheckboxChange(code) {
+    const checkbox = document.getElementById(`checkbox-${code}`);
+
+    if (checkbox.checked) {
+        appState.selectedETFs.add(code);
+    } else {
+        appState.selectedETFs.delete(code);
+    }
+
+    console.log('Selected ETFs:', Array.from(appState.selectedETFs));
+
+    // Update comparison chart
+    updateComparisonChart();
+}
+
+/**
+ * Remove ETF from list
+ */
+function removeETF(code) {
+    // Remove from list
+    appState.etfList = appState.etfList.filter(etf => etf.code !== code);
+
+    // Remove from selected
+    appState.selectedETFs.delete(code);
+
+    // Re-render list
+    renderETFList();
+
+    // Update comparison chart
+    updateComparisonChart();
+
+    // Hide section if empty
+    if (appState.etfList.length === 0) {
+        hideElement('etf-list-section');
+        hideElement('comparison-section');
+    }
+
+    console.log('ETF 삭제:', code);
+}
+
+/**
+ * Update comparison chart
+ */
+function updateComparisonChart() {
+    const selectedCodes = Array.from(appState.selectedETFs);
+
+    if (selectedCodes.length === 0) {
+        hideElement('comparison-section');
+        return;
+    }
+
+    // Get selected ETF data
+    const selectedETFs = appState.etfList.filter(etf =>
+        selectedCodes.includes(etf.code)
+    );
+
+    // Show comparison section
+    showElement('comparison-section');
+
+    // Render comparison chart
+    renderComparisonChart(selectedETFs);
+
+    console.log('Comparison chart updated with', selectedETFs.length, 'ETFs');
+}
+
+/**
+ * Display ETF basic information (legacy - for single ETF view)
  */
 function displayBasicInfo(info) {
     if (!info) return;
@@ -139,7 +291,7 @@ function displayBasicInfo(info) {
 }
 
 /**
- * Display intraday price data
+ * Display intraday price data (legacy - for single ETF view)
  */
 function displayIntradayData(data) {
     if (!data || data.length === 0) {
@@ -156,7 +308,7 @@ function displayIntradayData(data) {
 }
 
 /**
- * Display daily price data
+ * Display daily price data (legacy - for single ETF view)
  */
 function displayDailyData(data) {
     if (!data || data.length === 0) {
@@ -182,10 +334,11 @@ function hideAllSections() {
     hideElement('etf-info-section');
     hideElement('intraday-section');
     hideElement('daily-section');
+    hideElement('comparison-section');
 }
 
 /**
- * Show all data sections
+ * Show all data sections (legacy)
  */
 function showAllSections() {
     showElement('etf-info-section');
@@ -204,10 +357,9 @@ if (document.readyState === 'loading') {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         initApp,
-        handleSearch,
-        loadETFData,
-        displayBasicInfo,
-        displayIntradayData,
-        displayDailyData
+        handleAddETF,
+        removeETF,
+        handleCheckboxChange,
+        updateComparisonChart
     };
 }
