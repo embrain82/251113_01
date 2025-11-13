@@ -36,8 +36,7 @@ function cacheElements() {
         searchBtn: document.getElementById('search-btn'),
         etfInfoSection: document.getElementById('etf-info-section'),
         intradaySection: document.getElementById('intraday-section'),
-        dailySection: document.getElementById('daily-section'),
-        periodBtns: document.querySelectorAll('.period-btn')
+        dailySection: document.getElementById('daily-section')
     };
 }
 
@@ -53,13 +52,6 @@ function attachEventListeners() {
         if (e.key === 'Enter') {
             handleSearch();
         }
-    });
-
-    // Period buttons
-    elements.periodBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            handlePeriodChange(e.target.dataset.period);
-        });
     });
 }
 
@@ -150,126 +142,37 @@ function displayBasicInfo(info) {
  * Display intraday price data
  */
 function displayIntradayData(data) {
-    const tbody = document.getElementById('intraday-tbody');
-
     if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="no-data">시간대별 시세 데이터가 없습니다.</td></tr>';
+        console.warn('No intraday data to display');
         return;
     }
 
     // Update time
     document.getElementById('intraday-update').textContent = `업데이트: ${getCurrentTimestamp()}`;
 
-    // Generate rows
-    const rows = data.map(item => {
-        const changeFormatted = formatChange(item.change);
-        const percentFormatted = formatPercent(item.changePercent);
-
-        return `
-            <tr>
-                <td>${formatTime(item.time)}</td>
-                <td class="${changeFormatted.class}">${formatPrice(item.price)}</td>
-                <td class="${changeFormatted.class}">${changeFormatted.text}</td>
-                <td class="${percentFormatted.class}">${percentFormatted.text}</td>
-                <td>${formatNumber(item.volume)}</td>
-            </tr>
-        `;
-    }).join('');
-
-    tbody.innerHTML = rows;
+    // Render chart
+    renderIntradayChart(data);
+    console.log('Intraday chart displayed with', data.length, 'data points');
 }
 
 /**
  * Display daily price data
  */
 function displayDailyData(data) {
-    const tbody = document.getElementById('daily-tbody');
-
     if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="no-data">일별 시세 데이터가 없습니다.</td></tr>';
+        console.warn('No daily data to display');
         return;
     }
 
-    // Update section header with data count and unit
+    // Update section header with data count
     const sectionHeader = document.querySelector('#daily-section .section-header h2');
     if (sectionHeader) {
-        const periodInfo = {
-            '1m': { label: '1개월', unit: '일별' },
-            '3m': { label: '3개월', unit: '주간' },
-            '6m': { label: '6개월', unit: '2주간' },
-            '1y': { label: '1년', unit: '월간' }
-        };
-        const info = periodInfo[appState.currentPeriod] || periodInfo['1m'];
-        sectionHeader.textContent = `${info.unit} 시세 (${info.label} - ${data.length}개)`;
+        sectionHeader.textContent = `일별 시세 (${data.length}개)`;
     }
 
-    // Generate rows
-    const rows = data.map(item => {
-        const changeFormatted = formatChange(item.change);
-        const percentFormatted = formatPercent(item.changePercent);
-
-        return `
-            <tr>
-                <td>${formatDate(item.date)}</td>
-                <td class="${changeFormatted.class}">${formatPrice(item.close)}</td>
-                <td class="${changeFormatted.class}">${changeFormatted.text}</td>
-                <td class="${percentFormatted.class}">${percentFormatted.text}</td>
-                <td>${formatPrice(item.open)}</td>
-                <td>${formatPrice(item.high)}</td>
-                <td>${formatPrice(item.low)}</td>
-                <td>${formatNumber(item.volume)}</td>
-            </tr>
-        `;
-    }).join('');
-
-    tbody.innerHTML = rows;
-}
-
-/**
- * Handle period change
- */
-async function handlePeriodChange(period) {
-    if (!appState.currentETF) {
-        console.warn('No ETF selected');
-        return;
-    }
-
-    console.log(`Period changed to: ${period}`);
-
-    // Update active button
-    elements.periodBtns.forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.period === period) {
-            btn.classList.add('active');
-        }
-    });
-
-    // Update state
-    appState.currentPeriod = period;
-
-    // Show loading state on table
-    const tbody = document.getElementById('daily-tbody');
-    tbody.innerHTML = '<tr><td colspan="8" class="no-data">데이터를 불러오는 중...</td></tr>';
-
-    // Reload daily data
-    try {
-        const dailyData = await getDailyData(appState.currentETF, period);
-        displayDailyData(dailyData);
-
-        // Show success feedback
-        const periodInfo = {
-            '1m': { label: '1개월', unit: '일별' },
-            '3m': { label: '3개월', unit: '주간' },
-            '6m': { label: '6개월', unit: '2주간' },
-            '1y': { label: '1년', unit: '월간' }
-        };
-        const info = periodInfo[period] || periodInfo['1m'];
-        console.log(`${info.label} ${info.unit} 데이터 ${dailyData.length}개 로드 완료`);
-    } catch (error) {
-        console.error('Error loading daily data:', error);
-        tbody.innerHTML = '<tr><td colspan="8" class="no-data">데이터를 불러오는데 실패했습니다.</td></tr>';
-        showError('시세 데이터를 불러오는데 실패했습니다.');
-    }
+    // Render chart
+    renderDailyChart(data);
+    console.log('Daily chart displayed with', data.length, 'data points');
 }
 
 /**
@@ -305,7 +208,6 @@ if (typeof module !== 'undefined' && module.exports) {
         loadETFData,
         displayBasicInfo,
         displayIntradayData,
-        displayDailyData,
-        handlePeriodChange
+        displayDailyData
     };
 }
