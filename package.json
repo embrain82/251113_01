@@ -1,0 +1,29 @@
+{
+  "name": "etf-price-viewer",
+  "version": "1.0.0",
+  "description": "ETF 시세 조회 웹 애플리케이션",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "dev": "python3 -m http.server 8000",
+    "test": "echo \"No tests specified yet\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/embrain82/251113_01.git"
+  },
+  "keywords": [
+    "etf",
+    "finance",
+    "stock",
+    "market",
+    "investment",
+    "korea"
+  ],
+  "author": "embrain82",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/embrain82/251113_01/issues"
+  },
+  "homepage": "https://github.com/embrain82/251113_01#readme"
+}
