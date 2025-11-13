@@ -223,21 +223,37 @@ body {
 .period-btn {
     padding: 8px 16px;
     font-size: 0.9rem;
+    font-weight: 500;
     background: white;
-    border: 1px solid #ddd;
+    border: 2px solid #ddd;
     border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
+    position: relative;
 }
 
 .period-btn:hover {
     background: #f5f5f5;
+    border-color: #667eea;
+    transform: translateY(-1px);
+}
+
+.period-btn:active {
+    transform: translateY(0);
 }
 
 .period-btn.active {
     background: #667eea;
     color: white;
     border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    font-weight: 600;
+}
+
+.period-btn.active::after {
+    content: '✓';
+    margin-left: 6px;
+    font-size: 0.85rem;
 }
 
 /* Table Styles */

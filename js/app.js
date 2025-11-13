@@ -190,6 +190,19 @@ function displayDailyData(data) {
         return;
     }
 
+    // Update section header with data count
+    const sectionHeader = document.querySelector('#daily-section .section-header h2');
+    if (sectionHeader) {
+        const periodText = {
+            '1m': '1개월',
+            '3m': '3개월',
+            '6m': '6개월',
+            '1y': '1년'
+        };
+        const currentPeriodText = periodText[appState.currentPeriod] || '1개월';
+        sectionHeader.textContent = `일별 시세 (${currentPeriodText} - ${data.length}개)`;
+    }
+
     // Generate rows
     const rows = data.map(item => {
         const changeFormatted = formatChange(item.change);
@@ -216,7 +229,12 @@ function displayDailyData(data) {
  * Handle period change
  */
 async function handlePeriodChange(period) {
-    if (!appState.currentETF) return;
+    if (!appState.currentETF) {
+        console.warn('No ETF selected');
+        return;
+    }
+
+    console.log(`Period changed to: ${period}`);
 
     // Update active button
     elements.periodBtns.forEach(btn => {
@@ -229,16 +247,28 @@ async function handlePeriodChange(period) {
     // Update state
     appState.currentPeriod = period;
 
+    // Show loading state on table
+    const tbody = document.getElementById('daily-tbody');
+    tbody.innerHTML = '<tr><td colspan="8" class="no-data">데이터를 불러오는 중...</td></tr>';
+
     // Reload daily data
     try {
-        showLoading();
         const dailyData = await getDailyData(appState.currentETF, period);
+        console.log(`Loaded ${dailyData.length} daily records for period ${period}`);
         displayDailyData(dailyData);
+
+        // Show success feedback
+        const periodText = {
+            '1m': '1개월',
+            '3m': '3개월',
+            '6m': '6개월',
+            '1y': '1년'
+        };
+        console.log(`${periodText[period]} 데이터 ${dailyData.length}개 로드 완료`);
     } catch (error) {
         console.error('Error loading daily data:', error);
+        tbody.innerHTML = '<tr><td colspan="8" class="no-data">데이터를 불러오는데 실패했습니다.</td></tr>';
         showError('일별 시세를 불러오는데 실패했습니다.');
-    } finally {
-        hideLoading();
     }
 }
 

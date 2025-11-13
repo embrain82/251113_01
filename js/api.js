@@ -127,7 +127,12 @@ async function getDailyData(code, period = '1m') {
 
         let data = mockData[code].dailyData || [];
 
-        // Filter by period (simple implementation)
+        // Generate more data if needed
+        if (data.length < 365) {
+            data = generateExtendedDailyData(data, code);
+        }
+
+        // Filter by period
         const periodDays = {
             '1m': 30,
             '3m': 90,
@@ -165,6 +170,57 @@ async function getDailyData(code, period = '1m') {
         console.error('Error fetching daily data:', error);
         throw new Error('일별 시세를 가져오는데 실패했습니다.');
     }
+}
+
+/**
+ * Generate extended daily data for testing
+ * @param {Array} baseData - Base daily data
+ * @param {string} code - ETF code
+ * @returns {Array} Extended daily data
+ */
+function generateExtendedDailyData(baseData, code) {
+    if (!baseData || baseData.length === 0) {
+        return [];
+    }
+
+    const extended = [...baseData];
+    const lastItem = baseData[baseData.length - 1];
+    const lastDate = new Date(lastItem.date);
+    let currentPrice = lastItem.close;
+
+    // Generate data for up to 365 days
+    for (let i = baseData.length; i < 365; i++) {
+        lastDate.setDate(lastDate.getDate() - 1);
+
+        // Skip weekends
+        if (lastDate.getDay() === 0 || lastDate.getDay() === 6) {
+            continue;
+        }
+
+        // Random price change (-2% to +2%)
+        const changePercent = (Math.random() - 0.5) * 4;
+        const change = Math.round(currentPrice * changePercent / 100);
+        const close = currentPrice;
+        const open = close - change;
+        const high = Math.max(open, close) + Math.round(Math.random() * 100);
+        const low = Math.min(open, close) - Math.round(Math.random() * 100);
+        const volume = Math.round(500000 + Math.random() * 2000000);
+
+        extended.push({
+            date: lastDate.toISOString().split('T')[0],
+            close: close,
+            change: change,
+            changePercent: parseFloat(changePercent.toFixed(2)),
+            open: open,
+            high: high,
+            low: low,
+            volume: volume
+        });
+
+        currentPrice = open;
+    }
+
+    return extended;
 }
 
 /**
