@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테스트 페이지</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { margin: 5px; padding: 10px 20px; }
+        .active { background: blue; color: white; }
+        #result { margin-top: 20px; border: 1px solid #ccc; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>ETF 시세 테스트</h1>
+
+    <div>
+        <button class="period-btn active" data-period="1m">1개월</button>
+        <button class="period-btn" data-period="3m">3개월</button>
+        <button class="period-btn" data-period="6m">6개월</button>
+        <button class="period-btn" data-period="1y">1년</button>
+    </div>
+
+    <div id="result"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        // 테스트 코드
+        let currentETF = '152100';
+        let currentPeriod = '1m';
+
+        // 버튼 클릭 이벤트
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const period = e.target.dataset.period;
+                console.log('Button clicked:', period);
+
+                // 버튼 활성화
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+
+                currentPeriod = period;
+
+                // 데이터 가져오기
+                try {
+                    const data = await getDailyData(currentETF, period);
+                    console.log(`Period: ${period}, Data count: ${data.length}`, data);
+
+                    document.getElementById('result').innerHTML = `
+                        <h3>Period: ${period}</h3>
+                        <p>Data count: ${data.length}</p>
+                        <pre>${JSON.stringify(data.slice(0, 3), null, 2)}</pre>
+                    `;
+                } catch (error) {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerHTML = `Error: ${error.message}`;
+                }
+            });
+        });
+
+        // 초기 로드
+        window.onload = async () => {
+            console.log('Testing initial load...');
+            const data = await getDailyData(currentETF, '1m');
+            console.log('Initial data:', data);
+        };
+    </script>
+</body>
+</html>

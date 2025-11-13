@@ -133,28 +133,38 @@ async function getDailyData(code, period = '1m') {
         }
 
         // Get data by period and aggregate accordingly
+        console.log(`Processing period: ${period}, Total data available: ${data.length}`);
         let resultData;
         switch (period) {
             case '1m':
                 // 1개월: 일별 데이터 30일
                 resultData = data.slice(0, 30);
+                console.log(`1m: Returning ${resultData.length} daily records`);
                 break;
             case '3m':
                 // 3개월: 주간 데이터 (7일 단위 집계)
-                resultData = aggregateDataByInterval(data.slice(0, 90), 7);
+                const data3m = data.slice(0, 90);
+                console.log(`3m: Aggregating ${data3m.length} days into weekly data`);
+                resultData = aggregateDataByInterval(data3m, 7);
                 break;
             case '6m':
                 // 6개월: 2주간 데이터 (14일 단위 집계)
-                resultData = aggregateDataByInterval(data.slice(0, 180), 14);
+                const data6m = data.slice(0, 180);
+                console.log(`6m: Aggregating ${data6m.length} days into bi-weekly data`);
+                resultData = aggregateDataByInterval(data6m, 14);
                 break;
             case '1y':
                 // 1년: 월간 데이터 (30일 단위 집계)
-                resultData = aggregateDataByInterval(data.slice(0, 365), 30);
+                const data1y = data.slice(0, 365);
+                console.log(`1y: Aggregating ${data1y.length} days into monthly data`);
+                resultData = aggregateDataByInterval(data1y, 30);
                 break;
             default:
                 resultData = data.slice(0, 30);
+                console.log(`Default: Returning ${resultData.length} daily records`);
         }
 
+        console.log(`Final result for ${period}: ${resultData.length} items`);
         return resultData;
     }
 
@@ -194,9 +204,11 @@ async function getDailyData(code, period = '1m') {
  */
 function aggregateDataByInterval(data, intervalDays) {
     if (!data || data.length === 0) {
+        console.warn('No data to aggregate');
         return [];
     }
 
+    console.log(`Aggregating ${data.length} days into ${intervalDays}-day intervals`);
     const aggregated = [];
 
     for (let i = 0; i < data.length; i += intervalDays) {
@@ -224,6 +236,7 @@ function aggregateDataByInterval(data, intervalDays) {
         aggregated.push(aggregatedItem);
     }
 
+    console.log(`Aggregated result: ${aggregated.length} items`);
     return aggregated;
 }
 
@@ -243,8 +256,11 @@ function generateExtendedDailyData(baseData, code) {
     const lastDate = new Date(lastItem.date);
     let currentPrice = lastItem.close;
 
-    // Generate data for up to 365 days
-    for (let i = baseData.length; i < 365; i++) {
+    // Generate data until we have 365+ days worth (excluding weekends)
+    let daysGenerated = baseData.length;
+    const targetDays = 365;
+
+    while (daysGenerated < targetDays) {
         lastDate.setDate(lastDate.getDate() - 1);
 
         // Skip weekends
@@ -273,6 +289,7 @@ function generateExtendedDailyData(baseData, code) {
         });
 
         currentPrice = open;
+        daysGenerated++;
     }
 
     return extended;
