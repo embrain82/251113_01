@@ -62,16 +62,22 @@
   - 옵션 2: React/Vue (컴포넌트 기반 개발)
 
 ### Backend (데이터 소스)
-**옵션 1: 외부 API 활용**
-- 한국투자증권 Open API
-- 키움증권 Open API
-- 공공데이터포털 금융 API
+**옵션 1: 공공 데이터 API (무료, 추천)**
+- 공공데이터포털 - 금융위원회_증권상품시세정보 API
+- 한국거래소(KRX) 정보데이터시스템 API
+- PyKRX (Python 오픈소스 라이브러리)
 
-**옵션 2: 크롤링 (주의: 법적 이슈 검토 필요)**
+**옵션 2: 증권사 Open API (무료/유료)**
+- 한국투자증권 Open API
+- 키움증권 Open API+
+- eBest 투자증권 Open API
+
+**옵션 3: 크롤링 (주의: 법적 이슈 검토 필요)**
 - Python (BeautifulSoup, Selenium)
 - Node.js (Puppeteer, Cheerio)
+- ⚠️ 네이버 금융 등 상업 서비스 크롤링 시 이용약관 확인 필수
 
-**옵션 3: Mock 데이터**
+**옵션 4: Mock 데이터**
 - 초기 개발 단계에서 샘플 데이터 사용
 - JSON 파일 또는 로컬 데이터베이스
 
@@ -272,7 +278,234 @@ Response:
 7. ⬜ 테스트 및 디버깅
 8. ⬜ 배포
 
+## ETF 데이터 소스 상세 정보
+
+### 1. 공공데이터포털 - 금융위원회_증권상품시세정보 API ⭐ 추천
+
+**개요:**
+- 한국거래소에서 제공하는 상장 ETF, ETN, ELW의 시세 정보
+- 시가, 종가, 고가, 저가, 거래량, 변동률 등 제공
+
+**사용 방법:**
+1. 공공데이터포털(www.data.go.kr) 회원가입
+2. API 활용신청 (활용목적 작성)
+3. 승인 후 API 키 발급
+4. REST API 호출
+
+**API 정보:**
+- URL: https://www.data.go.kr/data/15094806/openapi.do
+- 제공 오퍼레이션:
+  - 상장지수펀드(ETF) 종목별 시세 조회
+  - 상장지수채권(ETN) 종목별 시세 조회
+  - 주식워런트증권(ELW) 종목별 시세 조회
+- 요청 파라미터: `basDt` (기준일자, YYYYMMDD 형식)
+- 응답 형식: JSON/XML
+
+**장점:**
+- ✅ 무료
+- ✅ 공식 데이터 (신뢰성 높음)
+- ✅ 법적 문제 없음
+- ✅ Swagger UI 제공 (테스트 편리)
+
+**단점:**
+- ⚠️ 실시간 데이터 아닌 일별 데이터
+- ⚠️ 기준일자(basDt) 파라미터 주의 필요
+
+**활용 예시:**
+```
+GET https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo
+?serviceKey={API_KEY}
+&basDt=20251113
+&numOfRows=10
+&pageNo=1
+```
+
+---
+
+### 2. 한국거래소(KRX) 정보데이터시스템 API
+
+**개요:**
+- KRX에서 직접 제공하는 공식 데이터
+- 주식, ETF, ETN, 파생상품, 공매도 정보 등 제공
+
+**사용 방법:**
+1. KRX 정보데이터시스템(data.krx.co.kr) 회원가입
+2. 마이페이지에서 'API 인증키 신청'
+3. 원하는 데이터 서비스 이용 신청
+4. API 호출 (일 10,000회 제한)
+
+**API 정보:**
+- URL: http://data.krx.co.kr
+- ETF 일별매매정보: `http://data-dbg.krx.co.kr/svc/apis/etp/etf_bydd_trd`
+- 요청 방식: REST API
+- 인증: API Key
+
+**장점:**
+- ✅ 무료 (비상업적 용도)
+- ✅ 한국거래소 공식 데이터
+- ✅ 다양한 데이터 제공 (주식, ETF, 파생상품 등)
+
+**단점:**
+- ⚠️ 일 10,000회 호출 제한
+- ⚠️ 비상업적 사용 제한
+- ⚠️ API 승인 절차 필요
+
+---
+
+### 3. PyKRX (Python 오픈소스 라이브러리) ⭐ 개발 편의성
+
+**개요:**
+- KRX 데이터를 쉽게 가져올 수 있는 Python 라이브러리
+- 주식, ETF, ETN, ELW, 채권, 파생상품 데이터 지원
+
+**설치:**
+```bash
+pip install pykrx
+```
+
+**사용 예시:**
+```python
+from pykrx import stock
+from pykrx import bond
+
+# ETF 티커 리스트 조회
+etf_list = stock.get_etf_ticker_list()
+
+# ETF 일별 시세 조회
+df = stock.get_etf_ohlcv_by_date("20251001", "20251113", "152100")
+# 152100: KODEX 200 ETF 코드
+
+# ETF 포트폴리오 조회
+portfolio = stock.get_etf_portfolio_deposit_file("152100")
+```
+
+**장점:**
+- ✅ 무료 오픈소스
+- ✅ 설치 및 사용 간편
+- ✅ Python 환경에서 즉시 활용 가능
+- ✅ 일별/분별 데이터 모두 지원
+- ✅ API 키 불필요
+
+**단점:**
+- ⚠️ 웹 스크래핑 기반 (KRX 웹사이트 변경 시 작동 중단 가능)
+- ⚠️ Python 환경 필요
+
+**GitHub:** https://github.com/sharebook-kr/pykrx
+
+---
+
+### 4. 한국투자증권 Open API
+
+**개요:**
+- 국내/해외 주식 시세, 잔고조회, 주문 등 제공
+- REST API + WebSocket 지원
+
+**사용 방법:**
+1. 한국투자증권 계좌 개설
+2. KIS Developers 포털(https://apiportal.koreainvestment.com) 가입
+3. 앱 등록 후 App Key, App Secret 발급
+4. 토큰 발급 후 API 호출
+
+**API 정보:**
+- URL: https://apiportal.koreainvestment.com
+- 실시간 시세: WebSocket 지원
+- 일별/분별 시세 조회 가능
+
+**장점:**
+- ✅ 실시간 데이터 제공 (WebSocket)
+- ✅ 주식 + ETF 모두 지원
+- ✅ 풍부한 문서 및 샘플 코드
+
+**단점:**
+- ⚠️ 계좌 개설 필요
+- ⚠️ API 신청 및 승인 절차
+- ⚠️ 일 API 호출 제한 있음
+
+**GitHub:** https://github.com/koreainvestment/open-trading-api
+
+---
+
+### 5. 키움증권 Open API+
+
+**개요:**
+- 실시간 시세, 조건검색, 주문 등 제공
+- ActiveX/COM 기반 (Windows 전용)
+
+**사용 방법:**
+1. 키움증권 계좌 개설
+2. Open API+ 신청
+3. KOA Studio 다운로드 및 설치
+4. Python 또는 C++ 연동
+
+**장점:**
+- ✅ 실시간 데이터 제공
+- ✅ 강력한 조건검색 기능
+- ✅ 오랜 역사 (안정성)
+
+**단점:**
+- ⚠️ Windows 전용 (Linux/Mac 미지원)
+- ⚠️ ActiveX 기반 (보안 이슈)
+- ⚠️ 계좌 개설 필요
+
+**다운로드:** https://www.kiwoom.com/h/customer/download/VOpenApiInfoView
+
+---
+
+### 6. 기타 데이터 소스
+
+**공공데이터포털 - KRX상장종목정보:**
+- ETF 기본 정보 (종목명, 상장일자, 종목코드 등)
+- URL: https://www.data.go.kr/data/15094775/openapi.do
+
+**한국예탁결제원 주식정보서비스:**
+- 주식/ETF 기본 정보
+- URL: https://www.data.go.kr/data/15001145/openapi.do
+
+**Yahoo Finance API:**
+- 국내 ETF 일부 지원
+- 무료, API 키 불필요
+- 주의: 한국 시장 데이터 제한적
+
+---
+
+### 데이터 소스 비교표
+
+| 데이터 소스 | 비용 | 실시간 | 일별 | 가입 | API키 | 호출제한 | 추천도 |
+|------------|------|--------|------|------|-------|----------|--------|
+| 공공데이터포털 | 무료 | ❌ | ✅ | ✅ | ✅ | 중간 | ⭐⭐⭐⭐⭐ |
+| KRX API | 무료 | ❌ | ✅ | ✅ | ✅ | 10,000/일 | ⭐⭐⭐⭐ |
+| PyKRX | 무료 | ❌ | ✅ | ❌ | ❌ | 낮음 | ⭐⭐⭐⭐⭐ |
+| 한국투자증권 | 무료 | ✅ | ✅ | ✅ | ✅ | 있음 | ⭐⭐⭐⭐ |
+| 키움증권 | 무료 | ✅ | ✅ | ✅ | ✅ | 있음 | ⭐⭐⭐ |
+| 네이버 크롤링 | 무료 | ⚠️ | ✅ | ❌ | ❌ | 없음 | ⭐⭐ |
+
+---
+
+### 추천 구현 방안
+
+**Phase 1: 프로토타입 (Mock 데이터)**
+- Mock JSON 데이터로 UI 구현
+- 빠른 프론트엔드 개발
+
+**Phase 2: 공공 API 연동**
+- 공공데이터포털 API 또는 PyKRX 사용
+- 안정적인 일별 시세 데이터 확보
+
+**Phase 3: 실시간 데이터 (옵션)**
+- 한국투자증권 API로 실시간 WebSocket 연동
+- 시간대별 시세 업데이트
+
+---
+
 ## 참고 자료
+
+### 데이터 소스
+- 공공데이터포털: https://www.data.go.kr
+- 한국거래소 KRX: https://data.krx.co.kr
+- 한국투자증권 API: https://apiportal.koreainvestment.com
+- PyKRX GitHub: https://github.com/sharebook-kr/pykrx
+
+### 참고 사이트
 - 네이버 금융: https://finance.naver.com
-- 한국거래소 KRX: http://www.krx.co.kr
 - 금융투자협회: https://www.kofia.or.kr
+- 한국거래소: http://www.krx.co.kr
